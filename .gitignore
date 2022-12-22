@@ -1,1 +1,3 @@
 notes.txt
+*.ldif
+ldap.py
