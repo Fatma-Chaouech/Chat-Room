@@ -1,3 +1,6 @@
-notes.txt
-*.ldif
-ldap.py
+./notes.txt
+./*.ldif
+./ldap.py
+./screenshots/*
+./*Shortcut
+./demoCA/*

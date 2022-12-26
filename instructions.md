@@ -103,3 +103,27 @@ Allows to store user information, such as passwords and public keys, in a centra
     ```
     
 5. Use the CA to sign the request
+
+# Classes
+
+### Main
+
+### LDAPClient
+
+- handle all communication with the OpenLDAP server, including authentication, authorization, and management of user accounts and chatroom membership.
+
+### OpenSSLClient
+
+- handle all communication with the OpenSSL CA, including generating and signing certificate signing requests (CSRs), managing client certificates, and establishing secure communication channels between clients.
+
+### ChatRoom
+
+- responsible for managing the list of users who are members of the chatroom, as well as handling the sending and receiving of messages between users.
+
+### User
+
+- responsible for handling user authentication and authorization, as well as managing the user's certificate and other account information.
+
+### Message
+
+- responsible for handling the sending and receiving of messages between users.

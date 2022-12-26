@@ -1,5 +1,0 @@
-dn: cn=computingforgeeks,ou=groups,dc=example,dc=com
-objectClass: posixGroup
-cn: computingforgeeks
-gidNumber: 2000
-memberUid: computingforgeeks

@@ -1,0 +1,175 @@
+
+
+1. First, you will need to install and set up an OpenLDAP server. This will allow you to store user information, such as passwords and public keys, in a centralized directory. 
+You can find instructions for setting up an OpenLDAP server here: https://www.openldap.org/doc/admin24/quickstart.html
+
+2. Next, you will need to create a PKI infrastructure to manage the generation and distribution of digital certificates and keys. 
+There are many tools available for this, such as OpenSSL or EasyRSA. You can find more information about setting up a PKI infrastructure here: 
+https://www.openssl.org/docs/man1.1.1/man1/openssl.html
+
+3. Once you have your PKI infrastructure set up, you can start building your chat room application using Python. 
+You will need to use the TLS protocol to secure the communication between the client and server. 
+You can use the Python ssl module to implement TLS in your application. You can find more information about using the ssl module in Python here: https://docs.python.org/3/library/ssl.html
+
+4. To authenticate users, you will need to use the LDAP protocol to communicate with your OpenLDAP server and verify user credentials. 
+You can use the ldap3 library in Python to communicate with your OpenLDAP server. You can find more information about using the ldap3 library in Python here: https://ldap3.readthedocs.io/
+
++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+
+2.2 
+
+Install the necessary tools: To set up a PKI on Windows, you will need to install a tool that can manage the creation and distribution of digital certificates and keys. 
+One popular tool for this is OpenSSL, which is a free, open-source implementation of the SSL/TLS protocols. 
+You can download OpenSSL for Windows from the following link: https://slproweb.com/products/Win32OpenSSL.html
+
+Create a root certificate authority (CA): The first step in setting up a PKI is to create a root CA, which is a trusted entity that issues and signs digital certificates. 
+To do this, you will need to generate a root CA certificate and private key using OpenSSL. You can find detailed instructions for generating a root CA certificate and private key using OpenSSL here: https://www.openssl.org/docs/man1.1.1/man1/openssl-ca.html
+
+-------------**code** openssl req -new -x509 -days 3650 -extensions v3_ca -keyout private/ca.key -out certs/ca.crt **code** 
+openssl req: This command is used to generate a certificate signing request (CSR) or a self-signed certificate. In this case, we are using it to generate a self-signed certificate.
+-new: This option specifies that a new certificate and key should be generated.
+-x509: This option specifies that the output should be a self-signed certificate rather than a CSR.
+-days 3650: This option specifies the number of days that the certificate should be valid for.
+-extensions v3_ca: This option specifies that the certificate should be a version 3 CA certificate.
+-keyout private/ca.key: This option specifies the file in which the private key should be stored.
+-out certs/ca.crt: This option specifies the file in which the certificate should be stored.
+-------------- To generate a private key using OpenSSL, you can use the genrsa command. This command generates a private key in the RSA format, which is a widely-used standard for public key cryptography.
+**code** openssl genrsa -aes256 -out private_key.pem 2048
+
+Using the -aes256 option when generating a private key has the following benefits:
+	*It adds an extra layer of security to the private key, by encrypting it with a strong encryption algorithm.
+	*It requires a password to be specified, which must be provided in order to use the private key. This can help prevent unauthorized access to the private key.
+------------------------------------------------------------------------------------------
+
+Issue certificates to users or devices: Once you have your root CA set up, you can use it to issue certificates to users or devices. 
+This involves creating certificate signing requests (CSRs) and using your root CA to sign them. 
+You can find detailed instructions for issuing certificates using OpenSSL here: https://www.openssl.org/docs/man1.1.1/man1/openssl-req.html
+
+--------------**code** openssl req -new -key server/private_key.pem -out csr.pem
+This command will generate a new CSR using the private key stored in the file private_key.pem, and write the CSR to the file csr.pem.
+
+// DOESN'T MATTER STEP
+**code** openssl req -new -key server/private_key.pem -out server/csr.csr
+This command will generate a new .csr using the private key stored.
+---------------------------
+--------------**code** openssl ca -in csr.pem -out signed_certificate.pem -cert ca.crt -keyfile ca.key
+This command will sign the CSR stored in the file csr.pem using the root CA certificate stored in ca.crt and the root CA private key stored in ca.key. 
+The signed certificate will be written to the file signed_certificate.pem.
+
+openssl ca -in CSR_FILE.csr -out CERT_FILE.crt -cert ca.crt -keyfile ca.key
+
+-------------------------------
+
+
+
+
+3.3
+1. Write the client code
+2. Run the openssl server to run on the right port and hostname **code** openssl s_server -key server/private_key.pem -cert server/signed_certificate.pem -accept 8443 -servername example.com 
+3. Import the certificate into the client's list of trusted certificates 
+4. run the client code
+
+// You can also specify additional options when starting the OpenSSL server, such as the location of the server's private key and certificate, or the encryption cipher to be used. 
+You can find more information about the available options for the openssl s_server command in the OpenSSL documentation: https://www.openssl.org/docs/man1.1.1/man1/openssl-s_server.html
+
+Note : Your server should have gotten already the .cert and .key files.
+
+
+	3.1
+1. Import the certificate onto the OpenLDAP server.
+However, if you are using OpenLDAP as part of a larger system that includes certificate-based authentication, 
+you may need to import the certificate into the OpenLDAP server in order to establish trust between the client and the server. 
+Once you have imported the certificate into the OpenLDAP server, you will need to configure the client to trust the certificate in order to establish a secure connection with the server.
+ 
+**code** ldapmodify -D <bind DN> -w <bind password> -H <LDAP URI> -a -f <certificate file>
+This will add the certificate contained in the <certificate file> to the OpenLDAP server's certificate store. 
+The <bind DN> and <bind password> are used to authenticate to the server, and the <LDAP URI> specifies the location of the server.
+
+
+
+
+********************************************
+***************************************
+PEM of CA : secret
+PEM of server : server
+
+The PEM pass phrase, also known as the PEM encryption password, is a password used to protect a PEM-formatted file that contains sensitive information, 
+such as a private key or a certificate. 
+PEM (Privacy Enhanced Mail) is a base64-encoded format that is commonly used to store cryptographic keys and certificates.
+
+CSR : A certificate signing request (CSR) is a request to a certificate authority (CA) to issue a digital certificate for a particular purpose, such as securing a website or authenticating a user. 
+A CSR typically contains information about the entity requesting the certificate, such as the common name (e.g., the domain name of a website), 
+the organization name, and the location. It also contains a public key, which will be included in the issued certificate.
+
+
+Challenge password : secretMe
+Optional Company Name: SecretCompany
+
+***************************************************************************************************
+
+Before running the server : In general, the private key and certificate specified when starting an OpenSSL server using the openssl s_server command 
+should be the server's own private key and certificate, which are used to identify and authenticate the server to clients.
+These keys and certificates are typically generated and signed by a certificate authority (CA) after the server submits a certificate signing request (CSR) to the CA. 
+The CA will review the request and, if approved, issue a digital certificate that is signed with the CA's private key. This certificate can then be used by the server to identify itself to clients.
+On the other hand, the CA's own private key and certificate are used by the CA to sign the certificates of other entities, such as the server. 
+These keys and certificates are typically stored in a trusted certificate store on the client's machine, and are used to validate the authenticity of the server's certificate.
+
+
+Getting the certificate signed : There are a few steps involved in obtaining a certificate from a certificate authority (CA) for use on an OpenSSL server:
+Generate a private key and a certificate signing request (CSR) on the server. The private key is used to sign the CSR, which contains information about the server and the public key.
+Submit the CSR to the CA. This can typically be done through a web form on the CA's website, or by using a command-line tool such as OpenSSL.
+The CA will validate the information in the CSR and, if everything is in order, issue a certificate. The certificate will be issued in the form of a .crt file.
+Download the .crt file and install it on the server. The .crt file, along with the private key that was generated in step 1, 
+will be used by the server to establish secure connections with clients.
+It's important to note that the process for obtaining a certificate from a CA may vary depending on the specific CA and the type of certificate being requested. 
+Some CAs may require additional information or documentation, and some may have different processes for submitting and approving CSRs.
+
+
+How can we use OpenLDAP for the server/client communication using openssl?
+1. Install and configure OpenLDAP on the server.
+2. Generate a certificate signing request (CSR) on the server and send it to a trusted certificate authority (CA) to obtain an SSL/TLS certificate.
+3. Install the certificate on the server.
+4. Configure the client to trust the certificate issued by the CA.
+5. Configure the client to use SSL/TLS when communicating with the server.
+
+How's step 1 done?
+Install OpenLDAP: First, you will need to install OpenLDAP on the server. This can typically be done using the package manager for your operating system.
+Configure the LDAP server: After installing OpenLDAP, you will need to configure the server. This typically involves editing the configuration files for the server, 
+such as slapd.conf or cn=config. These files contain various settings for the LDAP server, including the location of the database, 
+the port number to use, and the access controls for the server.
+Create the LDAP database: Next, you will need to create the LDAP database. This can be done using tools such as ldapadd or ldapmodify. 
+You will need to define the structure of the database, including the object classes and attributes that will be used.
+Populate the LDAP database: Once the database is set up, you can begin populating it with information about the users, groups, 
+and other objects that you want to manage with LDAP. This can be done using tools such as ldapadd or ldapmodify.
+Test the LDAP server: Once the LDAP server is configured and the database is set up, you should test the server to ensure that it is working as expected. 
+You can use tools such as ldapsearch or ldapwhoami to test the server's functionality.
++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+Steps to configure the LDAP server : 
+Configuring the OpenLDAP server involves editing the server configuration files and setting various options to specify how the server should operate. Here are some of the main steps involved in configuring the OpenLDAP server:
+* Edit the slapd.conf or slapd.d configuration file: The slapd.conf file (or the slapd.d directory in newer versions of OpenLDAP) contains the main configuration options for the OpenLDAP server. 
+You will need to edit this file to specify various options such as the server's domain name, 
+database backend, and security settings.
+* Set the server's domain name: You will need to specify the domain name of the server in the suffix option in the slapd.conf file. 
+This should be the base DN (Distinguished Name) of the directory tree that the server will manage.
+* Choose a database backend: OpenLDAP supports several different types of database backends, such as Berkeley DB and MDB. You will need to choose a backend and specify it in the database option in the slapd.conf file. You will also need to configure any additional options for the chosen backend.
+* Configure security options: You will need to specify the security options for the server, such as whether to use TLS (Transport Layer Security) or SASL 
+(Simple Authentication and Security Layer) for authentication. You can also specify the certificate file to use for TLS, as well as any other security-related options.
+* Configure access controls: You will need to specify the access controls for the server by creating access control lists (ACLs) in the slapd.conf file. 
+These ACLs specify who is allowed to access the directory and what they are allowed to do.
+
+
+
+Connecting error : in server : C8040000:error:0A000418:SSL routines:ssl3_read_bytes:tlsv1 alert unknown ca:ssl\record\rec_layer_s3.c:1600:SSL alert number 48
+shutting down SSL
+CONNECTION CLOSED
+
+in client : [SSL: CERTIFICATE_VERIFY_FAILED] certificate verify failed: unable to get local issuer certificate (_ssl.c:997)
+
+
+
+OpenLDAP is installed: C:\OpenLDAP\slapd.exe
+
+Note: It is important to note that the mdb backend requires a local file system to store the database files, and it may not be suitable for use in a distributed environment. If you need to store the directory data on a remote system or in a distributed environment, 
+you may need to use a different type of database backend, such as the hdb or bdb backend.
