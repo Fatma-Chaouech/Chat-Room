@@ -1,9 +1,8 @@
 import threading
 
 class Room:
-    def __init__(self, ldap_client, openssl_client, name, users=[]):
-        self.ldap_client = ldap_client
-        self.openssl_client = openssl_client
+    def __init__(self, app, name, users=[]):
+        self.app = app
         self.name = name
         self.users = users
         self.messages = []
@@ -24,3 +23,4 @@ class Room:
     def get_messages(self, last_received_id):
         with self.lock:
             return self.messages[last_received_id:]
+

@@ -1,5 +1,4 @@
 ./notes.txt
-./*.ldif
 ./ldap.py
 ./screenshots/*
 ./*Shortcut
