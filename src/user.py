@@ -1,34 +1,49 @@
+import sys
+sys.path.insert(0,'./src')
 import threading
+from openssl_client import OpenSSLClient
 
 class User:
-    def __init__(self, ldap_client, openssl_client, name, password, cert_path=None):
+    def __init__(self, CA, ldap_client, name, password, certs_path=None, keys_path=None,\
+        organizational_unit='unit', organization='org', state='state', country='TN', email_address='user@gmail.com', common_name='common'):
         self.ldap_client = ldap_client
-        self.openssl_client = openssl_client
         self.name = name
+        self.common_name = common_name
+        self.email_address = email_address
+        self.country = country
+        self.state = state
+        self.organization = organization
+        self.organizational_unit = organizational_unit
         self.password = password
-        self.cert_path = cert_path
-        self.last_received_id = 0
+        self.chat_rooms = {}
+        self.last_received_ids = {}
         self.lock = threading.Lock()
+        self.openssl_client = OpenSSLClient(CA, self, certs_path, keys_path)
+        self.__authenticate(self)
+        self.__create_certificate(self)
+        
 
-    def authenticate(self):
-        return self.ldap_client.authenticate(self.name, self.password)
+    def __authenticate(self):
+        try :
+            self.ldap_client.authenticate(self.name, self.password)
+        except Exception as e:
+            print(e)
 
-    def create_certificate(self):
-        csr_path = './certificates/{}_csr.pem'.format(self.name)
-        self.openssl_client.create_csr(csr_path, self.name, self.name, 'TN', 'Ben-Arous', 'Org', 'Unit')
-        self.openssl_client.sign_csr(csr_path, self.cert_path)
+    def __create_certificate(self):
+        csr_path = './requests/{}_csr.pem'.format(self.name)
+        self.openssl_client.verify_certificate(csr_path)
 
-    def send_message(self, message):
-        self.chat_room.send_message(self, message)
+    # Will be invoked by the chat room when we add user to it
+    def define_room(self, chat_room):
+        self.chat_rooms[chat_room.name] = chat_room
+        self.last_received_ids[chat_room.name] = 0
 
-    def get_messages(self):
+    def send_message(self, room_name, message):
+        self.chat_rooms[room_name].send_message(self, message)
+
+    def get_messages(self, room_name):
         with self.lock:
-            messages = self.chat_room.get_messages(self.last_received_id)
-            self.last_received_id += len(messages)
+            messages = self.chat_rooms[room_name].get_messages(self.last_received_ids[room_name])
+            self.last_received_ids[room_name] += len(messages)
             return messages
 
-    def receive_message(self):
-        data = self.client_socket.recv(1024)
-        if not data:
-            return None
-        return data.decode('utf-8')

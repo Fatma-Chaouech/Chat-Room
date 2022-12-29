@@ -2,38 +2,52 @@ import ldap3
 import ssl
 
 class LDAPClient:
-    def __init__(self, host, port, ca_cert_path, bind_dn, bind_password):
+    def __init__(self, host, port, CA, bind_dn, bind_password):
         self.host = host
         self.port = port
-        self.ca_cert_path = ca_cert_path
+        self.CA = CA
         self.bind_dn = bind_dn
         self.bind_password = bind_password
         self.conn = None
 
     def connect(self):
-        # Create a TLS context with the CA certificate
-        tls_ctx = ssl.create_default_context(cafile=self.ca_cert_path)
-
-        # Connect to the LDAP server
-        server = ldap3.Server(self.host, port=self.port, use_ssl=True, tls=tls_ctx)
-        self.conn = ldap3.Connection(server, user=self.bind_dn, password=self.bind_password)
-
-        # Bind to the LDAP server
-        if not self.conn.bind():
-            raise Exception('LDAP bind failed: {}'.format(self.conn.result))
+        
+        tls = ldap3.Tls(validate=ssl.CERT_REQUIRED, ca_certs_file=self.CA.ca_cert_path)
+        server = ldap3.Server(host=self.host, port=self.port, use_ssl=True, tls=tls)
+        self.conn = ldap3.Connection(server=server, auto_bind=ldap3.AUTO_BIND_TLS_BEFORE_BIND,  client_strategy=ldap3.SYNC, user=self.bind_dn, password=self.bind_password, authentication=ldap3.SIMPLE)
+        self.conn.open()
+        self.conn.bind()
 
     def disconnect(self):
-        self.conn.unbind()
+        if self.conn and self.conn.bound:
+            self.conn.unbind()
+            self.conn.close()
+            self.conn = None
 
-    def add_user(self, dn, attrs):
-        if not self.conn.add(dn, attributes=attrs):
-            raise Exception('LDAP add failed: {}'.format(self.conn.result))
+    def add_user(self, user):
+        dn = 'cn=' + user.name + ',ou=users,dc=chatsec,dc=com'
+        attrs = {
+            'objectClass': ['inetOrg', 'person'],
+            'cn': user.name,
+            'sn': user.name,
+            'userPassword': user.password
+        }
+        if not self.conn or not self.conn.bound:
+            self.connect()
+        self.conn.add(dn=dn, object_class=attrs.keys(), attributes=attrs)
+        return self.conn.result
 
-    def delete_user(self, dn):
-        if not self.conn.delete(dn):
-            raise Exception('LDAP delete failed: {}'.format(self.conn.result))
+    def delete_user(self, username):
+        dn = 'cn=' + username + ',ou=users,dc=chatsec,dc=com'
+        if not self.conn or not self.conn.bound:
+            self.connect()
+        self.conn.delete(dn=dn)
+        return self.conn.result
 
-    def search_user(self, dn, filter, attributes):
-        if not self.conn.search(dn, filter, attributes=attributes):
-            raise Exception('LDAP search failed: {}'.format(self.conn.result))
-        return self.conn.entries
+    def verify_login(self, username, password):
+        dn = 'cn=' + username + ',ou=users,dc=chatsec,dc=com'
+        try:
+            self.conn.bind(dn=dn, password=password)
+            return True
+        except ldap3.core.exceptions.LDAPBindError:
+            return False
