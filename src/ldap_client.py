@@ -2,21 +2,26 @@ import ldap3
 import ssl
 
 class LDAPClient:
-    def __init__(self, host, port, CA, bind_dn, bind_password):
+    def __init__(self, host, port, CA, bind_dn, bind_password, client_cert_file, client_key_file):
         self.host = host
         self.port = port
         self.CA = CA
         self.bind_dn = bind_dn
         self.bind_password = bind_password
         self.conn = None
+        self.client_cert_file = client_cert_file
+        self.client_key_file = client_key_file
 
     def connect(self):
         
-        tls = ldap3.Tls(validate=ssl.CERT_REQUIRED, ca_certs_file=self.CA.ca_cert_path)
+        print('Connecting to LDAP server...')
+        tls = ldap3.Tls(validate=ssl.CERT_REQUIRED, ca_certs_file=self.CA.ca_cert_path, local_certificate_file=self.client_cert_file, local_private_key_file=self.client_key_file)
         server = ldap3.Server(host=self.host, port=self.port, use_ssl=True, tls=tls)
-        self.conn = ldap3.Connection(server=server, auto_bind=ldap3.AUTO_BIND_TLS_BEFORE_BIND,  client_strategy=ldap3.SYNC, user=self.bind_dn, password=self.bind_password, authentication=ldap3.SIMPLE)
+        self.conn = ldap3.Connection(server=server, auto_bind=ldap3.AUTO_BIND_TLS_BEFORE_BIND,  client_strategy=ldap3.SYNC, user=self.bind_dn, password=self.bind_password, authentication=ldap3.SASL, sasl_mechanism = 'EXTERNAL', sasl_credentials = None)
+        print('Connection created')
         self.conn.open()
         self.conn.bind()
+        print('Connected')
 
     def disconnect(self):
         if self.conn and self.conn.bound:
@@ -45,7 +50,7 @@ class LDAPClient:
         return self.conn.result
 
     def verify_login(self, username, password):
-        dn = 'cn=' + username + ',ou=users,dc=chatsec,dc=com'
+        dn = 'cn=' + username + 'dc=chatsec,dc=com'
         try:
             self.conn.bind(dn=dn, password=password)
             return True
