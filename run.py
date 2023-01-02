@@ -17,8 +17,8 @@ ca_cert_path = 'C:/Users/Fatma/OneDrive/Desktop/Chat-Room/root/ca.crt'
 ca_key_path = 'C:/Users/Fatma/OneDrive/Desktop/Chat-Room/root/ca.key'
 open_ssl_path = "C:/Program Files/OpenSSL-Win64/bin/openssl.exe"
 hostname = host + ':' + str(port)
-client_cert_file = 'C:/Users/Fatma/OneDrive/Desktop/Chat-Room/client/signed_certificate.pem'
-client_key_file = 'C:/Users/Fatma/OneDrive/Desktop/Chat-Room/client/private_key.pem'
+client_cert_file = 'C:/Users/Fatma/OneDrive/Desktop/Chat-Room/server/signed_certificate.pem'
+client_key_file = 'C:/Users/Fatma/OneDrive/Desktop/Chat-Room/server/private_key.pem'
 
 # Set the certificates and keys paths
 chatroom_keys_path = 'C:/Users/Fatma/OneDrive/Desktop/Chat-Room/chatroom_keys'
