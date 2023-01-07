@@ -21,7 +21,7 @@ client_cert_file = 'C:/Users/Fatma/OneDrive/Desktop/Chat-Room/server/signed_cert
 client_key_file = 'C:/Users/Fatma/OneDrive/Desktop/Chat-Room/server/private_key.pem'
 
 # Set the certificates and keys paths
-chatroom_keys_path = 'C:/Users/Fatma/OneDrive/Desktop/Chat-Room/chatroom_keys'
+chatroom_keys_path = './chatroom_keys'
 certs_path = 'C:/Users/Fatma/OneDrive/Desktop/Chat-Room/certificates'
 keys_path = 'C:/Users/Fatma/OneDrive/Desktop/Chat-Room/keys'
 
@@ -39,8 +39,8 @@ app = ChatRoomApp(ldap_client, chatroom_keys_path, certs_path, keys_path)
 print("App created")
 # Add a chat room 
 app.add_chat_room("IT Talk")
-app.add_chat_room("Express Your Feelings")
-app.add_chat_room("Sports Talk")
+# app.add_chat_room("Express Your Feelings")
+# app.add_chat_room("Sports Talk")
 
 # Create users
 alice = User(ca, ldap_client, 'Alice', 'alice123', certs_path, keys_path, organizational_unit="Unit", organization="Org", state="Alice-State", country="Alice-Country", email_address="alice@chatsec.com", common_name="Alice")
@@ -48,10 +48,12 @@ alice = User(ca, ldap_client, 'Alice', 'alice123', certs_path, keys_path, organi
 
 
 # Add users
-app.add_user(alice)
+app.add_user(alice, True)
+print("User added")
 
 
 # Send message
 alice.send_message("IT Talk", "Hello, I'm Alice")
 
+print("Starting app...")
 app.start()

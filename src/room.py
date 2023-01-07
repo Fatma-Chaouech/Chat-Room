@@ -2,8 +2,8 @@ import subprocess
 import threading
 
 class Room:
-    def __init__(self, name, chatroom_key_path):
-        self.key_path = chatroom_key_path + '/' + name + '.pem'
+    def __init__(self, name, chatroom_keys_path):
+        self.key_path = chatroom_keys_path + '/' + name.replace(' ', '_') + '.pem'
         self.name = name
         self.users = []
         self.messages = []
@@ -11,9 +11,13 @@ class Room:
         self.__generate_key()
 
     def __generate_key(self):
-        return  subprocess.run([
-        'openssl', 'genrsa', '-out', self.key_path, '2048'
-        ])
+        print('Generating key for room', self.name)
+        result = subprocess.run([
+        'openssl', 'genrsa', '-aes256', '-out', self.key_path, '2048'
+        ], capture_output=True)
+        if result.returncode != 0:
+            print("Error generating key:", result.stderr)
+        return result
 
     def join(self, user):
         self.__add_user(user)
@@ -33,8 +37,11 @@ class Room:
             self.users.pop(user_name)
 
     def send_message(self, message):
+        print('Goint to take the lock ...')
         with self.lock:
+            print('Sending message to room', self.name, ':', message)
             self.messages.append(message)
+            print("Message sent ...")
 
     def get_messages(self, last_received_id):
         with self.lock:

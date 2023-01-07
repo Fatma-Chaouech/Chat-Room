@@ -14,6 +14,7 @@ class ChatRoomApp:
         self.certs_path = certs_path
         self.keys_path = keys_path
         self.chatroom_keys_path = chatroom_keys_path
+        self.selected_chatroom = None
         self.lock = threading.Lock()
         self.ldap_client.connect()
 
@@ -34,15 +35,24 @@ class ChatRoomApp:
 
     def get_chat_rooms(self):
             with self.lock:
+                print('Got the get_chat_rooms lock')
                 return self.chat_rooms
 
-    def add_user(self, user):
+    def add_user(self, user, static=False):
         with self.lock:
             if user.name in self.users:
                 raise Exception('User already exists')
             else : 
-                self.ldap_client.add_user(user)
+                response = self.ldap_client.add_user(user)
+                if response == False:
+                    raise Exception('User already exists')
+                print('User added to ldap server')
                 self.users[user.name] = user
+                if static : 
+                    static_room = self.chat_rooms[self.get_chat_rooms().keys()[0]]
+                    print('get_chat_rooms success')
+                    self.users[user.name].define_room(static_room)
+                print('add user of app.py success')
 
     def remove_user(self, name):
         with self.lock:
@@ -92,6 +102,7 @@ class ChatRoomApp:
     def start(self):
         # Start the messaging thread for each user
         for user in self.users.values():
+            print("Starting thread for user ", user.name)
             user_thread = threading.Thread(target=self.message_thread, args=(user,))
             user_thread.start()
 
@@ -110,29 +121,29 @@ class ChatRoomApp:
     
             # Get the selected chat room
             try:
-                selected_chat_room = self.chat_rooms[chat_name]
+                self.selected_chatroom = self.chat_rooms[chat_name]
             except (ValueError, IndexError):
                 print('Invalid chat room selection.')
                 continue
     
             # Join the selected chat room
-            selected_chat_room.join()
+            self.selected_chatroom.join()
             while True : 
                 # Prompt the user to send a message
                 content = input('Enter your message (q to quit): ')
-                message = Message(selected_chat_room, content)
+                message = Message(self.selected_chatroom, content)
                 if message == 'q':
                     break
                 # Send the message to the chat room
-                selected_chat_room.send_message(message)
+                self.selected_chatroom.send_message(message)
     
             # Leave the chat room when the user is done
-            selected_chat_room.leave()
+            self.selected_chatroom.leave()
 		
     def message_thread(self, user):
         while True:
             # Check for new messages for the user
-            new_messages = user.get_messages()
+            new_messages = user.get_messages(self.selected_chatroom.name)
     
             # Display the new messages
             for message in new_messages:

@@ -17,7 +17,7 @@ class LDAPClient:
         print('Connecting to LDAP server...')
         tls = ldap3.Tls(validate=ssl.CERT_REQUIRED, ca_certs_file=self.CA.ca_cert_path, local_certificate_file=self.client_cert_file, local_private_key_file=self.client_key_file)
         server = ldap3.Server(host=self.host, port=self.port, use_ssl=True, tls=tls)
-        self.conn = ldap3.Connection(server=server, auto_bind=ldap3.AUTO_BIND_TLS_BEFORE_BIND,  client_strategy=ldap3.SYNC, user=self.bind_dn, password=self.bind_password, authentication=ldap3.SASL, sasl_mechanism = 'EXTERNAL', sasl_credentials = None)
+        self.conn = ldap3.Connection(server=server, auto_bind=ldap3.AUTO_BIND_TLS_BEFORE_BIND,  client_strategy=ldap3.SYNC, user=self.bind_dn, password=self.bind_password, authentication=ldap3.SASL, sasl_mechanism = 'EXTERNAL', sasl_credentials = '')
         print('Connection created')
         self.conn.open()
         self.conn.bind()
@@ -30,16 +30,17 @@ class LDAPClient:
             self.conn = None
 
     def add_user(self, user):
-        dn = 'cn=' + user.name + ',ou=users,dc=chatsec,dc=com'
+        dn = 'cn=Fatma,dc=chatsec,dc=com'
         attrs = {
-            'objectClass': ['inetOrg', 'person'],
-            'cn': user.name,
+            'objectClass': 'person',
             'sn': user.name,
-            'userPassword': user.password
+            'userPassword': user.password,
         }
+        
         if not self.conn or not self.conn.bound:
             self.connect()
-        self.conn.add(dn=dn, object_class=attrs.keys(), attributes=attrs)
+        self.conn.add(dn=dn, attributes=attrs)
+        print("User added to ldap server")
         return self.conn.result
 
     def delete_user(self, username):

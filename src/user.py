@@ -1,4 +1,5 @@
 import sys
+import os
 sys.path.insert(0,'./src')
 import threading
 from openssl_client import OpenSSLClient
@@ -18,20 +19,10 @@ class User:
         self.chat_rooms = {}
         self.last_received_ids = {}
         self.lock = threading.Lock()
-        self.openssl_client = OpenSSLClient(CA, self, certs_path, keys_path)
-        self.__authenticate(self)
-        self.__create_certificate(self)
+        csr_path = os.getcwd() + '/requests/{}_csr.pem'.format(self.name)
+        self.openssl_client = OpenSSLClient(CA, self, certs_path, keys_path, csr_path)
         
-
-    def __authenticate(self):
-        try :
-            self.ldap_client.authenticate(self.name, self.password)
-        except Exception as e:
-            print(e)
-
-    def __create_certificate(self):
-        csr_path = './requests/{}_csr.pem'.format(self.name)
-        self.openssl_client.verify_certificate(csr_path)
+        
 
     # Will be invoked by the chat room when we add user to it
     def define_room(self, chat_room):
