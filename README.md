@@ -1,10 +1,6 @@
 # Chat-Room
 ## Description
-A Chat-Room solution that respects security and cryptographic mechanisms by: 
-* Validating users' identity and their authentication using LDAP.
-* Using PKI to ensure authentication, integrity, confidentiality and non-repudiation of documents exchanged between partners.
-* Using a trusted authority who must validate the electronic certificates of the different users.
-* Managing certificates' life cycle.
+This project is a secure chatroom application built using Python and utilizing technologies such as OpenSSL and LDAP for authentication and encryption. The chatroom allows users to communicate with each other in real time in a reliable and flexible way, through the use of RabbitMQ, with the added security of TLS/SSL encryption and verified certificate chains. The project also features a centralized Certificate Authority for issuing and verifying user certificates. The chatroom can be used for confidential communication in various industries and organizations.
 ## LDAP
 ### Basic Terms
 * Short form of Lightweight Directory Acces Protocol.
