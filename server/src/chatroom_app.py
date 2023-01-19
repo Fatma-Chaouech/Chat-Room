@@ -47,9 +47,9 @@ class ChatRoomApp:
 
     def add_chat_room(self, chat_name):
         chat_room = Room(chat_name, self.chatroom_keys_path)
-        self.rabbitmq_client.add_queue(chat_name)
-        self.rabbitmq_client.channel.queue_purge(queue=chat_name)
+        
         self.chat_rooms[chat_name] = chat_room
+
 
 
     def run(self):
