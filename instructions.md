@@ -2,8 +2,9 @@
 
 1. Install and setup OpenLDAP server.
 2. Create a PKI infrastrusture.
-3. Use TLS in python for server/client communication code.
-4. Use ldap3 python library to communicate with OpenLDAP server.
+3. Install RabbitMQ and run it.
+4. Run the server code
+5. Run the client code
 
 # Setup OpenLDAP
 
@@ -52,11 +53,7 @@ Allows to store user information, such as passwords and public keys, in a centra
         2. run
     
       b.  Send request
-    
-    ```bash
-    Tools : ldapsearch _ ldapwhoami
-    ```
-    
+
     ```bash
     ldapsearch -h chatsec://server1 -p 389 -D "cn=Manager,dc=chatsec,dc=com" -w secret -b "dc=chatsec,dc=com" -s sub "(objectClass=*)”
     ```
@@ -103,27 +100,3 @@ Allows to store user information, such as passwords and public keys, in a centra
     ```
     
 5. Use the CA to sign the request
-
-# Classes
-
-### Main
-
-### LDAPClient
-
-- handle all communication with the OpenLDAP server, including authentication, authorization, and management of user accounts and chatroom membership.
-
-### OpenSSLClient
-
-- handle all communication with the OpenSSL CA, including generating and signing certificate signing requests (CSRs), managing client certificates, and establishing secure communication channels between clients.
-
-### ChatRoom
-
-- responsible for managing the list of users who are members of the chatroom, as well as handling the sending and receiving of messages between users.
-
-### User
-
-- responsible for handling user authentication and authorization, as well as managing the user's certificate and other account information.
-
-### Message
-
-- responsible for handling the sending and receiving of messages between users.
