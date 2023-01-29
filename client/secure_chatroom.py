@@ -1,19 +1,19 @@
 import asyncio
-from json import dumps, loads
-import logging
+from json import dump, dumps, loads
 from pathlib import Path
 from threading import Thread
 from PIL import ImageTk, Image
+import pika
 import aio_pika
 import aio_pika.abc
-from tkinter import  Canvas, Entry, Frame, Label, PhotoImage, Tk
+import tkinter as tk
+from tkinter import END, Canvas, Entry, Frame, Label, PhotoImage, Text, Tk
 
 
 class ChatroomPage(Frame):
-    def __init__(self, window, username, certificate):
+    def __init__(self, window, username):
         Frame.__init__(self, window)
         self.window = self
-        self.certificate = certificate
         self.canvas = self.__prepare_canvas()
         self.username = username
         self.chat_frame = self.__prepare_chat_frame()
@@ -23,107 +23,105 @@ class ChatroomPage(Frame):
         self.next_row = 0
         self.selected_room = None
         self.rooms = []
-        self.current_listener = None
-        self.room_threads = {}
-        self.consumers = {}
-        logging.getLogger('asyncio').setLevel(logging.FATAL)
 
 
 # ======================= Consumer Thread Listening ========================
 
-    def thread_consumer(self, room_name, username):
-        try:
-            loop = asyncio.get_event_loop()
-        except :
-            loop = asyncio.new_event_loop()
-            asyncio.set_event_loop(loop)
 
-        finally:
-            loop.run_until_complete(
-                self.listen_on_message(loop, room_name, username))
-            loop.close()
+    def thread_consumer(self, room_name, username):
+        print('started a consume thread on ', room_name)
+        loop = asyncio.new_event_loop()
+        loop.run_until_complete(
+            self.listen_on_message(loop, room_name, username))
+        loop.close()
 
     async def listen_on_message(self, loop, room_name, username):
         connection: aio_pika.RobustConnection = await aio_pika.connect_robust(
             "amqp://guest:guest@127.0.0.1/", loop=loop
         )
         async with connection:
-            queue_name = (username + '.' + room_name).replace(' ', '')
+            queue_name = username + '_'
+
             # Creating channel
             channel: aio_pika.abc.AbstractChannel = await connection.channel()
+            exchange = await channel.declare_exchange('topic', aio_pika.ExchangeType.TOPIC)
 
             # Declaring queue
             queue: aio_pika.abc.AbstractQueue = await channel.declare_queue(
                 queue_name, durable=True
             )
 
-            await queue.consume(self.message_callback, no_ack=True)
-            print(" [*] Waiting for messages. To exit press CTRL+C")
-            await asyncio.Future()
-            
-        
+            await queue.bind(exchange, routing_key=room_name)
 
-    def message_callback(self, message):
-        if message.routing_key.split('.')[1] == self.selected_room.replace(' ', '') :
-            message = loads(message.body)
-            self.display_message(message)
+            async with queue.iterator() as queue_iter:
+                try:
+                    print(" [*] Waiting for messages. To exit press CTRL+C")
+                    async for message in queue_iter:
+                        async with message.process():
+                            self.message_callback(message.body)
+                except:
+                    print('Closing connection...')
+                    await connection.close()
+                    print('Connection closed.')
+                    return 0
+
+    def message_callback(self, body):
+        message = loads(body)
+        self.display_message(message)
 
 # ======================= Publisher Thread Listening ========================
 
-    def thead_publisher(self, message, room_name, queue_name: str):
-        asyncio.run(self.publish(message, room_name, queue_name))
-            
+    def thead_publisher(self, message, room_name):
 
-    async def publish(self, message, room_name, queue_name):
-        connection = await aio_pika.connect("amqp://guest:guest@127.0.0.1/")
-        routing_key = queue_name
-        async with connection:
-            channel = await connection.channel()
-            queue = await channel.declare_queue(queue_name, durable=True)
+        loop = asyncio.new_event_loop()
+        loop.run_until_complete(self.publish(loop, message, room_name))
+        loop.close()
 
-            body = {
-                'sender': self.username,
-                'content': message,
-                'room_name': room_name
-            }
-            # Binding queue
-            await channel.default_exchange.publish(
-                aio_pika.Message(
-                    body=dumps(body).encode(),
-                    headers={'routing_key': routing_key,
-                            'certificate': self.certificate},
-                    delivery_mode=aio_pika.DeliveryMode.PERSISTENT,
-                ),
-                routing_key=queue.name
-            )
-            # create the consumer thread on the room
-            if queue_name == 'room_selection':
-                self.current_listener = Thread(
-                    target=self.thread_consumer, args=(room_name, self.username))
-                self.current_listener.setDaemon(True)
-                self.consumers[room_name] = self.current_listener
-                self.current_listener.start()
-            await connection.close()
+    async def publish(self, loop, message, room_name):
+        connection: aio_pika.RobustConnection = await aio_pika.connect_robust("amqp://guest:guest@127.0.0.1/", loop=loop)
+        queue_name = self.username + '_'
+        routing_key = room_name
+        channel: aio_pika.abc.AbstractChannel = await connection.channel()
+        # Declaring exchange
+        exchange = await channel.declare_exchange('topic', aio_pika.ExchangeType.TOPIC)
+
+        # Declaring queue
+        queue = await channel.declare_queue(queue_name, durable=True)
+
+        # Binding queue
+        await queue.bind(exchange, routing_key=routing_key)
+        await exchange.publish(
+            aio_pika.Message(
+                body=message.encode(),
+                headers={'routing_key': routing_key},
+                delivery_mode=aio_pika.DeliveryMode.PERSISTENT,
+            ),
+            routing_key=routing_key
+        )
+        await connection.close()
 
 
 # ======================= Main Program =========================
 
-    def publish_message(self, _, queue_name='messaging'):
+
+    def publish_message(self, _):
         if self.selected_room:
             if self.selected_room not in self.rooms:
                 self.rooms.append(self.selected_room)
-            message = self.message_input.get()
+            message = dumps(
+                {'content': self.message_input.get(), 'sender': self.username})
             self.message_input.delete(0, 'end')
             t = Thread(target=self.thead_publisher,
-                    args=(message, self.selected_room, queue_name))
+                    args=(message, self.selected_room))
             t.start()
         else:
             print("Please select a room before sending a message.")
 
     def select_room(self, room_name):
-        t_select = Thread(target=self.thead_publisher,
-                          args=('', room_name, 'room_selection'))
-        t_select.start()
+        t = Thread(target=self.thread_consumer,
+                args=(room_name, self.username))
+        t.start()
+
         for bubble in self.chat_frame.winfo_children():
             bubble.destroy()
         self.rooms.append(room_name)
@@ -132,17 +130,15 @@ class ChatroomPage(Frame):
     def display_message(self, message):
 
         username = message['sender']
-        content = message['content']
         bg_color = '#F0E68C' if username == self.username else '#D3E397'
         padx = 30 if username == self.username else 70
         anchor = 'e' if username == self.username else 'w'
-        sender_label = Label(self.chat_frame, font=(
-            'Arial', 10), bg='#2D2D2D', fg='white', anchor=anchor)
+        sender_label = Label(self.chat_frame, font=('Arial', 10), bg='#2D2D2D', fg='white', anchor=anchor)
         sender_label.config(text=username, anchor=anchor)
         sender_label.pack(side='top', anchor=anchor, padx=padx, pady=5)
         message_bubble = Label(self.chat_frame, bg=bg_color, bd=2, relief='solid',
-                               pady=10, padx=10, font=('Arial', 12), anchor=anchor, wraplength=200)
-        message_bubble.config(text=content, anchor=anchor)
+                            pady=10, padx=10, font=('Arial', 12), anchor=anchor, wraplength=200)
+        message_bubble.config(text=message['content'], anchor=anchor)
         message_bubble.pack(side='top', anchor=anchor, padx=padx, pady=5)
         self.next_row += 1
 
@@ -153,9 +149,9 @@ class ChatroomPage(Frame):
 
     def __prepare_input(self):
         message_input = Entry(self.window, bd=2, bg='#2E2E2E', fg='white', highlightthickness=0.5,
-                              insertbackground='white', width=50)
+                            insertbackground='white', width=50)
         message_input.config(highlightcolor='#93D092',
-                             highlightbackground='#93D092')
+                            highlightbackground='#93D092')
         message_input.place(x=225.0, y=437.0, width=523.0, height=39.0)
         self.side_image = Image.open(relative_to_assets('button_1.png'))
         send = ImageTk.PhotoImage(self.side_image)

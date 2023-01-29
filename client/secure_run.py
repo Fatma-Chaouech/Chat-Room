@@ -128,6 +128,7 @@ class LoginPage(Tk):
             'username': username,
             'password': password
         }
+        self.frames[ChatroomPage] = ChatroomPage(self.window, username)
         self.channel.basic_publish(exchange='',
                                    routing_key='login',
                                    body=json.dumps(body))
@@ -145,7 +146,6 @@ class LoginPage(Tk):
 
     def show_frame(self):
         self.connection.close()
-        self.frames[ChatroomPage] = ChatroomPage(self.window, self.username, self.certificate)
         frame = self.frames[ChatroomPage]
         frame.pack(side="top", fill="both", expand=True)
         frame.tkraise()
@@ -155,7 +155,6 @@ class LoginPage(Tk):
         response = json.loads(body.decode())
         print(response)
         if response['status'] == 'success':
-            self.certificate = response['certificate'].encode('utf-8')
             self.show_frame()
         elif response['status'] == 'error':
             print(response['message'])
