@@ -26,8 +26,8 @@ class User:
         self.chat_rooms[chat_room.name] = chat_room
         self.last_received_ids[chat_room.name] = 0
 
-    def send_message(self, room_name, message):
-        self.chat_rooms[room_name].send_message(message)
+    def send_message(self, room_name, message, sender):
+        self.chat_rooms[room_name].send_message(message, sender)
 
     def get_messages(self, room_name):
         messages = self.chat_rooms[room_name].get_messages(self.last_received_ids[room_name])
@@ -36,4 +36,13 @@ class User:
 
     def reset_last_received_id(self, room_name):
         self.last_received_ids[room_name] = 0
+    
+    def get_certificate(self):
+        return self.openssl_client.get_certificate()
+
+    def get_certificate_path(self):
+        return self.openssl_client.get_certificate_path()
+    
+    def verify_certificate(self, certificate_path):
+        return self.openssl_client.verify_certificate(certificate_path)
 

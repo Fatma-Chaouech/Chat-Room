@@ -2,11 +2,13 @@ import socket
 import ssl
 import subprocess
 
+
 class OpenSSLClient:
     def __init__(self, CA, user, certs_path, keys_path, csr_path):
         self.CA = CA
         self.user = user
         self.tls_certificate = None
+        self.certs_path = certs_path
         self.cert_path = str(certs_path) + '\\' + user.name.lower() + '.pem'
         self.key_path = str(keys_path) + '\\' + user.name.lower() + '.pem'
         self.__generate_tls_certificate(csr_path)
@@ -33,9 +35,15 @@ class OpenSSLClient:
         self.tls_certificate = self.CA.sign_csr(csr_path, self.cert_path)
         print("TLS certificate for user {} generated".format(self.user.name))
     
-    def verify_certificate(self, csr_path):
-        if not self.tls_certificate:
-            self.tls_certificate = self.__generate_tls_certificate(csr_path)
+    def verify_certificate(self, certificate_path):
+        try:
+            result = subprocess.run(['openssl', 'verify', '-CAfile', self.CA.ca_cert_path, certificate_path], capture_output=True)
+            error = result.stderr.decode('utf-8').strip()
+            if len(error) > 0:
+                return False
+            return True
+        except subprocess.CalledProcessError as e:
+            return False
 
     def __create_ssl_context(self):
         # Create an SSL context object and configure it to use the CA's certificate, the client's certificate and private key,
@@ -51,3 +59,10 @@ class OpenSSLClient:
         client_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         ssl_context = self.__create_ssl_context()
         return ssl_context.wrap_socket(client_socket,server_hostname=server_hostname)
+
+    def get_certificate_path(self):
+        return self.cert_path
+    
+    def get_certificate(self):
+        certificate = open(self.cert_path, "rb").read()
+        return certificate

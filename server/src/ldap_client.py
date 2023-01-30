@@ -28,7 +28,7 @@ class LDAPClient:
             self.conn = None
 
     def add_user(self, user):
-        dn = 'cn=Fatma,dc=chatsec,dc=com'
+        dn = f'cn={user.name},dc=chatsec,dc=com'
         attrs = {
             'objectClass': 'person',
             'sn': user.name,
@@ -38,6 +38,7 @@ class LDAPClient:
         if not self.conn or not self.conn.bound:
             self.connect()
         self.conn.add(dn=dn, attributes=attrs)
+        self._add_certificate(user.get_certificate(), user.name)
         return self.conn.result
 
     def delete_user(self, username):
@@ -54,3 +55,16 @@ class LDAPClient:
             return True
         except ldap3.core.exceptions.LDAPBindError:
             return False
+
+    def _add_certificate(self, certificate, name):
+        dn = "cn={},dc=chatsec,dc=com".format('cert_' + name.replace(' ', '_'))
+        self.conn.add(dn, ["person"], attributes={"cn": "cert", "userCertificate;binary": certificate})
+    
+    def get_certificate(self, username):
+        base_dn = 'cn={},dc=chatsec,dc=com'.format('cert_' + username.replace(' ', '_'))
+        search_filter = '(objectClass=person)'
+        self.conn.search(base_dn, search_filter, attributes=['userCertificate;binary'])
+
+        # Retrieve the certificate information from the entry
+        certificate = self.conn.response[0]['attributes']['userCertificate;binary']
+        return certificate

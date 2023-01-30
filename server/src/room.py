@@ -29,25 +29,21 @@ class Room:
         self.send_message(user_name, " has left the room.")
 
     def __add_user(self, user):
-        # self.user_lock.acquire()
         self.users[user.name] = user
         user.define_room(self)
-        # self.user_lock.release()
 
-    def __remove_user(self, user_name):
-        # self.user_lock.acquire()
-        self.users.pop(user_name)
-        # self.user_lock.release()
+    def remove_user(self, user_name):
+        if user_name in self.users.keys():
+            self.users.pop(user_name)
 
-    def send_message(self, message):
-        #self.message_lock.acquire()
-        print('Sending message to room', self.name, ':', message)
-        self.messages.append(message)
+    def send_message(self, message, sender="Bot"):
+        self.messages.append({
+            'sender': sender,
+            'content': message
+        })
 
     def get_messages(self, last_received_id):
-        # self.message_lock.acquire()
         messages = self.messages[last_received_id:]
-        # self.message_lock.release()
         return messages
 
     

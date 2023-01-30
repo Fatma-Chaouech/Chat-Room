@@ -7,7 +7,8 @@ from PIL import ImageTk, Image
 import aio_pika
 import aio_pika.abc
 from tkinter import  Canvas, Entry, Frame, Label, PhotoImage, Tk
-
+from ldap import LDAP
+from openSSL import OpenSSLEncryption
 
 class ChatroomPage(Frame):
     def __init__(self, window, username, certificate):
@@ -26,6 +27,8 @@ class ChatroomPage(Frame):
         self.current_listener = None
         self.room_threads = {}
         self.consumers = {}
+        self.ldap = LDAP()
+        self.openSSL = OpenSSLEncryption(self.ldap)
         logging.getLogger('asyncio').setLevel(logging.FATAL)
 
 
@@ -113,6 +116,7 @@ class ChatroomPage(Frame):
             if self.selected_room not in self.rooms:
                 self.rooms.append(self.selected_room)
             message = self.message_input.get()
+            self.openSSL.encrypt_message(message, self.certificate)
             self.message_input.delete(0, 'end')
             t = Thread(target=self.thead_publisher,
                     args=(message, self.selected_room, queue_name))

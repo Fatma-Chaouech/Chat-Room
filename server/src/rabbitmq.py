@@ -7,8 +7,11 @@ class RabbitMq():
         self.connection = pika.BlockingConnection(parameters)
         self.channel = self.connection.channel()
         self.channel.queue_declare(queue="login")
-        self.channel.queue_declare(queue="poof")
         self.channel.queue_purge(queue='login')
+        self.channel.queue_declare(queue="messaging", durable=True)
+        self.channel.queue_purge(queue='messaging')
+        self.channel.queue_declare(queue="room_selection", durable=True)
+        self.channel.queue_purge(queue='room_selection')
 
                             
     def add_queue(self, name):
